@@ -27,6 +27,7 @@ for (const candidate of envCandidates) {
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   API_PORT: z.coerce.number().int().default(4000),
+  PORT: z.coerce.number().int().optional(),
   WEB_ORIGIN: z.string().url().default("http://localhost:5173"),
   DATABASE_URL: z.string().url(),
   DATABASE_ADMIN_URL: z.string().url().optional(),

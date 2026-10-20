@@ -9,8 +9,9 @@ const app = createApp({
   env,
   log: (msg, meta) => console.error(JSON.stringify({ level: "error", msg, ...meta })),
 });
-const server = app.listen(env.API_PORT, () => {
-  console.log(JSON.stringify({ level: "info", msg: "opshub-api listening", port: env.API_PORT }));
+const port = env.PORT ?? env.API_PORT ?? 4000;
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(JSON.stringify({ level: "info", msg: "opshub-api listening", port }));
 });
 
 const shutdown = () => {
