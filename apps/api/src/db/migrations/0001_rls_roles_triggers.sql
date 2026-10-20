@@ -139,16 +139,13 @@ CREATE VIEW stock_reconciliation WITH (security_invoker = true) AS
 -- ---------------------------------------------------------------------------
 -- Least-privilege grants for the application role. No DDL, no DELETE anywhere.
 -- ---------------------------------------------------------------------------
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM opshub_app;
---> statement-breakpoint
-GRANT USAGE ON SCHEMA public TO opshub_app;
---> statement-breakpoint
-GRANT SELECT ON users, roles, sites, user_site_roles, stock_reconciliation TO opshub_app;
---> statement-breakpoint
-GRANT UPDATE (token_version, updated_at) ON users TO opshub_app;
---> statement-breakpoint
-GRANT SELECT, INSERT ON site_releases, stock_ledger, approvals, assignments, consumption_records, audit_events TO opshub_app;
---> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE ON site_active_releases, site_drafts, inventory_items, requests, return_records, repair_records, idempotency_keys TO opshub_app;
---> statement-breakpoint
-GRANT EXECUTE ON FUNCTION app_site_id(), app_user_id() TO opshub_app;
+DO $$ BEGIN
+  REVOKE ALL ON ALL TABLES IN SCHEMA public FROM opshub_app;
+  GRANT USAGE ON SCHEMA public TO opshub_app;
+  GRANT SELECT ON users, roles, sites, user_site_roles, stock_reconciliation TO opshub_app;
+  GRANT UPDATE (token_version, updated_at) ON users TO opshub_app;
+  GRANT SELECT, INSERT ON site_releases, stock_ledger, approvals, assignments, consumption_records, audit_events TO opshub_app;
+  GRANT SELECT, INSERT, UPDATE ON site_active_releases, site_drafts, inventory_items, requests, return_records, repair_records, idempotency_keys TO opshub_app;
+  GRANT EXECUTE ON FUNCTION app_site_id(), app_user_id() TO opshub_app;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;

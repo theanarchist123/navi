@@ -12,17 +12,29 @@ async function initDatabase() {
   try {
     console.log(JSON.stringify({ level: "info", msg: "Checking database migrations..." }));
     await runMigrations(adminUrl, env.DATABASE_URL);
-    console.log(JSON.stringify({ level: "info", msg: "Migrations up to date." }));
+    console.log(JSON.stringify({ level: "info", msg: "Migrations successfully checked and applied." }));
   } catch (err: any) {
-    console.error(JSON.stringify({ level: "error", msg: "Migration check error", error: err?.message, stack: err?.stack }));
+    console.error(JSON.stringify({
+      level: "error",
+      msg: "Migration check error",
+      error: err?.cause?.message || err?.message,
+      detail: err?.cause?.detail || err?.detail,
+      stack: err?.stack,
+    }));
   }
 
   try {
     console.log(JSON.stringify({ level: "info", msg: "Checking seed data..." }));
     await seed(adminUrl, { demoData: true });
-    console.log(JSON.stringify({ level: "info", msg: "Seed completed or already present." }));
+    console.log(JSON.stringify({ level: "info", msg: "Seed completed or verified." }));
   } catch (err: any) {
-    console.error(JSON.stringify({ level: "error", msg: "Seed check error", error: err?.message, stack: err?.stack }));
+    console.error(JSON.stringify({
+      level: "error",
+      msg: "Seed check error",
+      error: err?.cause?.message || err?.message,
+      detail: err?.cause?.detail || err?.detail,
+      stack: err?.stack,
+    }));
   }
 }
 

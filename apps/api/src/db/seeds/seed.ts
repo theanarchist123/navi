@@ -98,10 +98,18 @@ export async function seed(adminUrl: string, options: SeedOptions = {}): Promise
         await tx.insert(s.sites).values({ id: c.siteId, slug: c.slug, name: c.name }).onConflictDoNothing({ target: s.sites.id });
       }
       for (const u of devUsers) {
-        await tx
-          .insert(s.users)
-          .values({ id: u.id, email: u.email, displayName: u.name, passwordHash, isPlatformAdmin: u.platformAdmin })
-          .onConflictDoNothing({ target: s.users.id });
+        const [existing] = await tx.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, u.email)).limit(1);
+        if (!existing) {
+          await tx
+            .insert(s.users)
+            .values({ id: u.id, email: u.email, displayName: u.name, passwordHash, isPlatformAdmin: u.platformAdmin })
+            .onConflictDoNothing();
+        } else {
+          await tx
+            .update(s.users)
+            .set({ passwordHash, isPlatformAdmin: u.platformAdmin })
+            .where(eq(s.users.id, existing.id));
+        }
       }
       const roleRows = await tx.select().from(s.roles);
       const roleId = new Map(roleRows.map((r) => [r.key, r.id]));

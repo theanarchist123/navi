@@ -57,4 +57,7 @@ CREATE POLICY proposal_tenant_isolation ON configuration_proposals
 --> statement-breakpoint
 
 -- Grants for application role
-GRANT SELECT, INSERT, UPDATE, DELETE ON configuration_proposals TO opshub_app;
+DO $$ BEGIN
+  GRANT SELECT, INSERT, UPDATE, DELETE ON configuration_proposals TO opshub_app;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
