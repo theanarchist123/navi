@@ -11,4 +11,4 @@ test-results
 apps/api/test-results
 
 # Database backups
-backup/
+/backup/
