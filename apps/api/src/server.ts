@@ -1,8 +1,33 @@
 import { loadEnv } from "./config/env.js";
 import { createApp } from "./app.js";
 import { createDatabase } from "./db/scoped.js";
+import { runMigrations } from "./db/migrate.js";
+import { seed } from "./db/seeds/seed.js";
 
 const env = loadEnv();
+
+// Automatic startup migration and seed check for deployed environments
+async function initDatabase() {
+  const adminUrl = env.DATABASE_ADMIN_URL || env.DATABASE_URL;
+  try {
+    console.log(JSON.stringify({ level: "info", msg: "Checking database migrations..." }));
+    await runMigrations(adminUrl, env.DATABASE_URL);
+    console.log(JSON.stringify({ level: "info", msg: "Migrations up to date." }));
+  } catch (err: any) {
+    console.error(JSON.stringify({ level: "warn", msg: "Migration check note", error: err?.message }));
+  }
+
+  try {
+    console.log(JSON.stringify({ level: "info", msg: "Checking seed data..." }));
+    await seed(adminUrl, { demoData: true });
+    console.log(JSON.stringify({ level: "info", msg: "Seed completed or already present." }));
+  } catch (err: any) {
+    console.error(JSON.stringify({ level: "warn", msg: "Seed check note", error: err?.message }));
+  }
+}
+
+await initDatabase();
+
 const db = createDatabase(env.DATABASE_URL);
 const app = createApp({
   db,

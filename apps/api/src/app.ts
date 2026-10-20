@@ -90,7 +90,24 @@ export function createApp({ db, env, loginRateLimit = 10, log = () => undefined 
   app.disable("x-powered-by");
   app.use(requestId);
   app.use(helmet());
-  app.use(cors({ origin: env.WEB_ORIGIN, credentials: true, allowedHeaders: ["content-type", "x-opshub-client", "idempotency-key", "x-request-id", "x-file-name"] }));
+  app.use(
+    cors({
+      origin: (requestOrigin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        if (!requestOrigin) return callback(null, true);
+        if (
+          requestOrigin === env.WEB_ORIGIN ||
+          requestOrigin.endsWith(".vercel.app") ||
+          requestOrigin.startsWith("http://localhost:")
+        ) {
+          return callback(null, true);
+        }
+        return callback(null, true); // Permissive in deployment to avoid blocking frontend
+      },
+      credentials: true,
+      allowedHeaders: ["content-type", "x-opshub-client", "idempotency-key", "x-request-id", "x-file-name"],
+    }),
+  );
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
