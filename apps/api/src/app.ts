@@ -87,6 +87,7 @@ export interface AppDeps {
 export function createApp({ db, env, loginRateLimit = 10, log = () => undefined }: AppDeps): Express {
   manifest.length = 0;
   const app = express();
+  app.set("trust proxy", 1);
   app.disable("x-powered-by");
   app.use(requestId);
   app.use(helmet());
@@ -130,8 +131,23 @@ export function createApp({ db, env, loginRateLimit = 10, log = () => undefined 
   });
 
   // ---------- authentication
-  const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: loginRateLimit, skipSuccessfulRequests: true, standardHeaders: true, legacyHeaders: false, message: { error: { code: "rate_limited", message: "Too many login attempts. Try again later." } } });
-  const refreshLimiter = rateLimit({ windowMs: 15 * 60_000, limit: loginRateLimit * 12, standardHeaders: true, legacyHeaders: false, message: { error: { code: "rate_limited", message: "Too many refresh attempts. Try again later." } } });
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60_000,
+    limit: loginRateLimit,
+    skipSuccessfulRequests: true,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: false,
+    message: { error: { code: "rate_limited", message: "Too many login attempts. Try again later." } },
+  });
+  const refreshLimiter = rateLimit({
+    windowMs: 15 * 60_000,
+    limit: loginRateLimit * 12,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: false,
+    message: { error: { code: "rate_limited", message: "Too many refresh attempts. Try again later." } },
+  });
   const authDeps = { db, jwtSecret: env.JWT_SECRET, expiresInSeconds: env.JWT_EXPIRES_IN_SECONDS, refreshExpiresInSeconds: env.REFRESH_EXPIRES_IN_SECONDS };
   const setAuthCookies = (res: express.Response, issued: authSvc.IssuedSession) => {
     res.cookie(SESSION_COOKIE, issued.token, { httpOnly: true, sameSite: "lax", secure: secureCookie, path: "/", maxAge: env.JWT_EXPIRES_IN_SECONDS * 1000 });
