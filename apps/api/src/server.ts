@@ -14,7 +14,7 @@ async function initDatabase() {
     await runMigrations(adminUrl, env.DATABASE_URL);
     console.log(JSON.stringify({ level: "info", msg: "Migrations up to date." }));
   } catch (err: any) {
-    console.error(JSON.stringify({ level: "warn", msg: "Migration check note", error: err?.message }));
+    console.error(JSON.stringify({ level: "error", msg: "Migration check error", error: err?.message, stack: err?.stack }));
   }
 
   try {
@@ -22,7 +22,7 @@ async function initDatabase() {
     await seed(adminUrl, { demoData: true });
     console.log(JSON.stringify({ level: "info", msg: "Seed completed or already present." }));
   } catch (err: any) {
-    console.error(JSON.stringify({ level: "warn", msg: "Seed check note", error: err?.message }));
+    console.error(JSON.stringify({ level: "error", msg: "Seed check error", error: err?.message, stack: err?.stack }));
   }
 }
 

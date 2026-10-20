@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs'); fs.cpSync('src/db/migrations', 'dist/db/migrations', {recursive: true, force: true});\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run -c vitest.integration.config.ts",

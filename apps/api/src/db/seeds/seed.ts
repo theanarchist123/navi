@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import bcrypt from "bcrypt";
@@ -11,7 +11,13 @@ import * as s from "../schema/index.js";
 import { assertLedgerBalance, seedDemoData, type DemoSummary } from "./demo-data.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const sitesDir = resolve(here, "../../../../../config/sites");
+const siteCandidates = [
+  resolve(here, "../../../../../config/sites"),
+  resolve(here, "../../../../config/sites"),
+  resolve(process.cwd(), "config/sites"),
+  resolve(process.cwd(), "../../config/sites"),
+];
+const sitesDir = siteCandidates.find((c) => existsSync(c)) || resolve(here, "../../../../../config/sites");
 
 /** LOCAL DEVELOPMENT ONLY credentials. Never used outside seeded demo databases. */
 export const DEV_PASSWORD = "opshub-dev-1";

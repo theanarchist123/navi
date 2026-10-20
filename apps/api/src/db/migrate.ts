@@ -4,8 +4,16 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
 
+import { existsSync } from "node:fs";
+
 const here = dirname(fileURLToPath(import.meta.url));
-const migrationsFolder = resolve(here, "migrations");
+const migrationCandidates = [
+  resolve(here, "migrations"),
+  resolve(here, "../../src/db/migrations"),
+  resolve(process.cwd(), "apps/api/src/db/migrations"),
+  resolve(process.cwd(), "src/db/migrations"),
+];
+const migrationsFolder = migrationCandidates.find((c) => existsSync(c)) || resolve(here, "migrations");
 
 /**
  * Ensures the least-privilege application role exists (LOGIN, NOSUPERUSER, NOBYPASSRLS),
@@ -20,10 +28,14 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
 
   const pool = new pg.Pool({ connectionString: adminUrl, max: 1 });
   try {
-    const literal = `'${password.replace(/'/g, "''")}'`;
-    const exists = await pool.query("select 1 from pg_roles where rolname = $1", [roleName]);
-    const attrs = "LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE";
-    await pool.query(`${exists.rowCount ? "ALTER" : "CREATE"} ROLE ${roleName} ${attrs} PASSWORD ${literal}`);
+    try {
+      const literal = `'${password.replace(/'/g, "''")}'`;
+      const exists = await pool.query("select 1 from pg_roles where rolname = $1", [roleName]);
+      const attrs = "LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE";
+      await pool.query(`${exists.rowCount ? "ALTER" : "CREATE"} ROLE ${roleName} ${attrs} PASSWORD ${literal}`);
+    } catch (roleErr: any) {
+      console.warn("Role creation/alteration bypassed (e.g. managed cloud database with restricted role permissions):", roleErr?.message);
+    }
     await migrate(drizzle(pool), { migrationsFolder });
   } finally {
     await pool.end();
