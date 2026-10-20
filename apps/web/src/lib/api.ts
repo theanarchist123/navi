@@ -1,7 +1,8 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import type { ApiError, AuthSession } from "@opshub/contracts";
 
-const BASE = { baseURL: "/api/v1", withCredentials: true, headers: { "x-opshub-client": "web" } };
+const apiBase = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") || "/api/v1";
+const BASE = { baseURL: apiBase, withCredentials: true, headers: { "x-opshub-client": "web" } };
 
 /** The single HTTP client. Auth is httpOnly cookies, so no token ever touches JS or storage. */
 export const http = axios.create(BASE);
