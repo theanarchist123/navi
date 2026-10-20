@@ -9,6 +9,7 @@ import type { SiteConfiguration } from "@opshub/contracts";
 import { compileConfiguration } from "../../compiler/compile.js";
 import * as s from "../schema/index.js";
 import { assertLedgerBalance, seedDemoData, type DemoSummary } from "./demo-data.js";
+import { createPool } from "../scoped.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const siteCandidates = [
@@ -82,7 +83,7 @@ export interface SeedResult {
 }
 
 export async function seed(adminUrl: string, options: SeedOptions = {}): Promise<SeedResult> {
-  const pool = new pg.Pool({ connectionString: adminUrl, max: 1 });
+  const pool = createPool(adminUrl, 1);
   const db = drizzle(pool, { schema: s });
   const configs = loadSiteConfigs();
   const passwordHash = await bcrypt.hash(DEV_PASSWORD, 10);

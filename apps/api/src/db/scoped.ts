@@ -70,6 +70,12 @@ export class Database {
   }
 }
 
+export function createPool(connectionString: string, max = 10): pg.Pool {
+  const isCloud = !connectionString.includes("localhost") && !connectionString.includes("127.0.0.1");
+  const ssl = isCloud ? { rejectUnauthorized: false } : undefined;
+  return new pg.Pool({ connectionString, max, ssl });
+}
+
 export function createDatabase(connectionString: string, max = 10): Database {
-  return new Database(new pg.Pool({ connectionString, max }));
+  return new Database(createPool(connectionString, max));
 }

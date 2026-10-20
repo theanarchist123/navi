@@ -15,6 +15,8 @@ const migrationCandidates = [
 ];
 const migrationsFolder = migrationCandidates.find((c) => existsSync(c)) || resolve(here, "migrations");
 
+import { createPool } from "./scoped.js";
+
 /**
  * Ensures the least-privilege application role exists (LOGIN, NOSUPERUSER, NOBYPASSRLS),
  * then applies all migrations. Must run with the admin connection. Safe to re-run.
@@ -26,7 +28,7 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
   if (!/^[a-z_][a-z0-9_]*$/.test(roleName)) throw new Error("Application role name must be a simple lowercase identifier");
   if (!password) throw new Error("DATABASE_URL must include a password for the application role");
 
-  const pool = new pg.Pool({ connectionString: adminUrl, max: 1 });
+  const pool = createPool(adminUrl, 1);
   try {
     try {
       const literal = `'${password.replace(/'/g, "''")}'`;
