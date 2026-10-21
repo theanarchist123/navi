@@ -9,18 +9,29 @@ const env = loadEnv();
 // Automatic startup migration and seed check for deployed environments
 async function initDatabase() {
   const adminUrl = env.DATABASE_ADMIN_URL || env.DATABASE_URL;
-  try {
-    console.log(JSON.stringify({ level: "info", msg: "Checking database migrations..." }));
-    await runMigrations(adminUrl, env.DATABASE_URL);
-    console.log(JSON.stringify({ level: "info", msg: "Migrations successfully checked and applied." }));
-  } catch (err: any) {
-    console.error(JSON.stringify({
-      level: "error",
-      msg: "Migration check error",
-      error: err?.cause?.message || err?.message,
-      detail: err?.cause?.detail || err?.detail,
-      stack: err?.stack,
-    }));
+  const maxRetries = 10;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(JSON.stringify({ level: "info", msg: "Checking database migrations...", attempt }));
+      await runMigrations(adminUrl, env.DATABASE_URL);
+      console.log(JSON.stringify({ level: "info", msg: "Migrations successfully checked and applied." }));
+      break;
+    } catch (err: any) {
+      const isRefused = err?.message?.includes("ECONNREFUSED") || err?.stack?.includes("ECONNREFUSED");
+      if (isRefused && attempt < maxRetries) {
+        console.warn(JSON.stringify({ level: "warn", msg: `Database connection refused (attempt ${attempt}/${maxRetries}), waiting 1s...` }));
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
+      console.error(JSON.stringify({
+        level: "error",
+        msg: "Migration check error",
+        error: err?.cause?.message || err?.message,
+        detail: err?.cause?.detail || err?.detail,
+        stack: err?.stack,
+      }));
+      break;
+    }
   }
 
   try {

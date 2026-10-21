@@ -98,6 +98,26 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
       console.warn("Users table missing after migration check; running manual migrations...");
       await runManualMigrations(pool, migrationsFolder);
     }
+
+    // 4. Ensure application role has required table grants
+    try {
+      await pool.query(`DO $$ BEGIN
+        IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'opshub_app') THEN
+          GRANT USAGE ON SCHEMA public TO opshub_app;
+          GRANT SELECT ON users, roles, sites, user_site_roles TO opshub_app;
+          GRANT UPDATE (token_version, updated_at) ON users TO opshub_app;
+          GRANT SELECT, INSERT ON site_releases, stock_ledger, approvals, assignments, consumption_records, audit_events TO opshub_app;
+          GRANT SELECT, INSERT, UPDATE ON site_active_releases, site_drafts, inventory_items, requests, return_records, repair_records, idempotency_keys TO opshub_app;
+          GRANT SELECT, INSERT, UPDATE ON refresh_tokens, provisioning_jobs TO opshub_app;
+          GRANT SELECT, INSERT ON provisioning_events, request_lines TO opshub_app;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON configuration_proposals TO opshub_app;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO opshub_app;
+        END IF;
+      EXCEPTION WHEN OTHERS THEN NULL;
+      END $$;`);
+    } catch {
+      // Ignored
+    }
   } finally {
     await pool.end();
   }

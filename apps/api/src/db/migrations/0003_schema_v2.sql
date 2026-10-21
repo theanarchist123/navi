@@ -50,6 +50,7 @@ ALTER TABLE "request_lines" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "request_lines" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint
 CREATE POLICY tenant_isolation ON request_lines USING (site_id = app_site_id()) WITH CHECK (site_id = app_site_id());
+--> statement-breakpoint
 DO $$ BEGIN
   GRANT SELECT, INSERT ON request_lines TO opshub_app;
 EXCEPTION WHEN OTHERS THEN NULL;
@@ -100,6 +101,7 @@ CREATE TABLE "provisioning_events" (
 ALTER TABLE "provisioning_jobs" ADD CONSTRAINT "provisioning_jobs_requested_by_users_id_fk" FOREIGN KEY ("requested_by") REFERENCES "public"."users"("id") ON DELETE restrict ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "provisioning_events" ADD CONSTRAINT "provisioning_events_job_id_provisioning_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."provisioning_jobs"("id") ON DELETE cascade ON UPDATE no action;
+--> statement-breakpoint
 DO $$ BEGIN
   GRANT SELECT, INSERT, UPDATE ON refresh_tokens, provisioning_jobs TO opshub_app;
   GRANT SELECT, INSERT ON provisioning_events TO opshub_app;
