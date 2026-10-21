@@ -6,6 +6,8 @@ import pg from "pg";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { createPool } from "./scoped.js";
 
+import { staticSiteConfigs } from "./seeds/static-sites.js";
+
 const here = dirname(fileURLToPath(import.meta.url));
 const migrationCandidates = [
   resolve(here, "migrations"),
@@ -99,7 +101,7 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
       await runManualMigrations(pool, migrationsFolder);
     }
 
-    // 3b. Ensure baseline roles and platform admin user exist
+    // 3b. Ensure baseline roles, users, sites, releases, and memberships exist
     try {
       await pool.query(`
         INSERT INTO roles (key, name) VALUES
@@ -115,12 +117,84 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
       const adminHash = '$2b$10$Nu8SZ4F/qjhDj0lomQnIX.uqsIE5h.584zqoqPj25hV2vIGRlMvE.';
       await pool.query(`
         INSERT INTO users (id, email, display_name, password_hash, is_platform_admin)
-        VALUES ('10000000-0000-4000-8000-000000000001', 'admin@opshub.local', 'Platform Admin', $1, true)
-        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, is_platform_admin = true;
+        VALUES 
+          ('10000000-0000-4000-8000-000000000001', 'admin@opshub.local', 'Platform Admin', $1, true),
+          ('10000000-0000-4000-8000-000000000002', 'storekeeper@opshub.local', 'Sam Storekeeper', $1, false),
+          ('10000000-0000-4000-8000-000000000003', 'technician@opshub.local', 'Tara Technician', $1, false),
+          ('10000000-0000-4000-8000-000000000004', 'approver@opshub.local', 'Avi Approver', $1, false),
+          ('10000000-0000-4000-8000-000000000005', 'dispatcher@opshub.local', 'Dev Dispatcher', $1, false)
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, is_platform_admin = EXCLUDED.is_platform_admin;
       `, [adminHash]);
-      console.log("Baseline platform admin user verified.");
+
+      // Baseline fleet sites
+      await pool.query(`
+        INSERT INTO sites (id, slug, name) VALUES
+          ('00000000-0000-4000-8000-000000000001', 'central-stores', 'Central Stores'),
+          ('00000000-0000-4000-8000-000000000002', 'service-centre', 'Service Centre'),
+          ('00000000-0000-4000-8000-000000000003', 'distribution', 'Distribution')
+        ON CONFLICT (id) DO UPDATE SET slug = EXCLUDED.slug, name = EXCLUDED.name;
+      `);
+
+      // Baseline releases and active pointers for each baseline site
+      for (const c of staticSiteConfigs) {
+        const existingRel = await pool.query(
+          "SELECT id FROM site_releases WHERE site_id = $1 LIMIT 1",
+          [c.siteId]
+        );
+        let releaseId: string;
+        if (existingRel.rowCount && existingRel.rowCount > 0) {
+          releaseId = existingRel.rows[0].id;
+        } else {
+          const insertRel = await pool.query(
+            `INSERT INTO site_releases (site_id, version, configuration, note, published_by)
+             VALUES ($1, 1, $2, 'Baseline site configuration', '10000000-0000-4000-8000-000000000001')
+             RETURNING id`,
+            [c.siteId, JSON.stringify(c)]
+          );
+          releaseId = insertRel.rows[0].id;
+        }
+        await pool.query(
+          `INSERT INTO site_active_releases (site_id, release_id, version)
+           VALUES ($1, $2, 1)
+           ON CONFLICT (site_id) DO UPDATE SET release_id = EXCLUDED.release_id, version = 1`,
+          [c.siteId, releaseId]
+        );
+      }
+
+      // Baseline memberships
+      const memberships = [
+        { userId: "10000000-0000-4000-8000-000000000001", slug: "central-stores", role: "admin" },
+        { userId: "10000000-0000-4000-8000-000000000001", slug: "service-centre", role: "admin" },
+        { userId: "10000000-0000-4000-8000-000000000001", slug: "distribution", role: "admin" },
+        { userId: "10000000-0000-4000-8000-000000000002", slug: "central-stores", role: "storekeeper" },
+        { userId: "10000000-0000-4000-8000-000000000003", slug: "service-centre", role: "technician" },
+        { userId: "10000000-0000-4000-8000-000000000004", slug: "service-centre", role: "approver" },
+        { userId: "10000000-0000-4000-8000-000000000004", slug: "distribution", role: "approver" },
+        { userId: "10000000-0000-4000-8000-000000000005", slug: "distribution", role: "dispatcher" },
+      ];
+
+      for (const m of memberships) {
+        await pool.query(`
+          INSERT INTO user_site_roles (user_id, site_id, role_id)
+          SELECT $1::uuid, s.id, r.id
+          FROM sites s, roles r
+          WHERE s.slug = $2 AND r.key = $3
+          ON CONFLICT (user_id, site_id, role_id) DO NOTHING;
+        `, [m.userId, m.slug, m.role]);
+      }
+
+      // Ensure platform admin has admin role on all non-system sites
+      await pool.query(`
+        INSERT INTO user_site_roles (user_id, site_id, role_id)
+        SELECT '10000000-0000-4000-8000-000000000001'::uuid, s.id, r.id
+        FROM sites s, roles r
+        WHERE r.key = 'admin' AND s.is_system = false
+        ON CONFLICT (user_id, site_id, role_id) DO NOTHING;
+      `);
+
+      console.log("Baseline fleet sites, releases, and user roles verified.");
     } catch (adminErr: any) {
-      console.warn("Notice ensuring baseline admin user:", adminErr?.message);
+      console.warn("Notice ensuring baseline metadata:", adminErr?.message);
     }
 
     // 4. Ensure application role has required table grants

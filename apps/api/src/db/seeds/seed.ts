@@ -10,6 +10,7 @@ import { compileConfiguration } from "../../compiler/compile.js";
 import * as s from "../schema/index.js";
 import { assertLedgerBalance, seedDemoData, type DemoSummary } from "./demo-data.js";
 import { createPool } from "../scoped.js";
+import { staticSiteConfigs } from "./static-sites.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const siteCandidates = [
@@ -53,18 +54,43 @@ const demoStock: Record<string, { sku: string; name: string; unit: string; qty: 
   ],
 };
 
-function loadSiteConfigs(): SiteConfiguration[] {
-  return readdirSync(sitesDir)
-    .filter((f) => f.endsWith(".json"))
-    .sort()
-    .map((f) => {
-      const raw: unknown = JSON.parse(readFileSync(join(sitesDir, f), "utf8"));
-      const out = compileConfiguration(raw);
-      if (!out.compiled) {
-        throw new Error(`Seed config ${f} failed validation: ${out.result.errors.map((e) => e.message).join("; ")}`);
+export function loadSiteConfigs(): SiteConfiguration[] {
+  try {
+    const candidates = [
+      resolve(process.cwd(), "config/sites"),
+      resolve(process.cwd(), "../config/sites"),
+      resolve(process.cwd(), "../../config/sites"),
+      resolve(here, "../../../../../config/sites"),
+      resolve(here, "../../../../config/sites"),
+      resolve(here, "../../../config/sites"),
+      resolve(here, "../../config/sites"),
+      resolve(here, "../config/sites"),
+      resolve(here, "config/sites"),
+      sitesDir,
+    ];
+    const found = candidates.find((c) => existsSync(c) && readdirSync(c).some((f) => f.endsWith(".json")));
+    if (found) {
+      const files = readdirSync(found).filter((f) => f.endsWith(".json")).sort();
+      if (files.length > 0) {
+        return files.map((f) => {
+          const raw: unknown = JSON.parse(readFileSync(join(found, f), "utf8"));
+          const out = compileConfiguration(raw);
+          if (!out.compiled) {
+            throw new Error(`Seed config ${f} failed validation: ${out.result.errors.map((e) => e.message).join("; ")}`);
+          }
+          return out.compiled;
+        });
       }
-      return out.compiled;
-    });
+    }
+  } catch (err) {
+    console.warn("Could not read site configs from disk, using embedded static site configs:", err);
+  }
+
+  return staticSiteConfigs.map((raw) => {
+    const out = compileConfiguration(raw);
+    if (!out.compiled) throw new Error("Static site compilation failed");
+    return out.compiled;
+  });
 }
 
 /**

@@ -32,22 +32,38 @@ export async function resolveSiteAccess(
       .innerJoin(s.roles, eq(s.roles.id, s.userSiteRoles.roleId))
       .innerJoin(s.sites, eq(s.sites.id, s.userSiteRoles.siteId))
       .where(and(eq(s.userSiteRoles.userId, user.id), eq(s.userSiteRoles.siteId, siteId)));
-    if (rows.length === 0) return null;
+
+    let slug = rows[0]?.slug;
+    let roles = rows.map((r) => r.roleKey);
+
+    if (rows.length === 0) {
+      if (!user.isPlatformAdmin) return null;
+      const [site] = await tx.select({ slug: s.sites.slug }).from(s.sites).where(eq(s.sites.id, siteId));
+      if (!site) return null;
+      slug = site.slug;
+      roles = ["admin"];
+    }
 
     const active = await getActiveRelease(tx, siteId);
     const permissions = new Set<string>();
     if (active) {
       const cfg = parseStoredConfig(active.configuration);
-      for (const key of rows.map((r) => r.roleKey)) {
-        for (const p of cfg.roles.find((r) => r.id === key)?.permissions ?? []) permissions.add(p);
+      if (user.isPlatformAdmin) {
+        for (const r of cfg.roles ?? []) {
+          for (const p of r.permissions ?? []) permissions.add(p);
+        }
+      } else {
+        for (const key of roles) {
+          for (const p of cfg.roles.find((r) => r.id === key)?.permissions ?? []) permissions.add(p);
+        }
       }
     }
     if (user.isPlatformAdmin) for (const p of PLATFORM_PERMISSIONS) permissions.add(p);
 
     return {
       siteId,
-      siteSlug: rows[0]!.slug,
-      roles: rows.map((r) => r.roleKey),
+      siteSlug: slug!,
+      roles,
       permissions,
       releaseVersion: active?.version ?? null,
     };
@@ -60,6 +76,10 @@ export async function listMemberships(
   user: { id: string; isPlatformAdmin: boolean },
 ): Promise<SiteMembership[]> {
   const siteIds = await db.withUser(user.id, async (tx) => {
+    if (user.isPlatformAdmin) {
+      const allSites = await tx.select({ siteId: s.sites.id }).from(s.sites).where(eq(s.sites.isSystem, false));
+      return allSites.map((r) => r.siteId);
+    }
     const rows = await tx.select({ siteId: s.userSiteRoles.siteId }).from(s.userSiteRoles).where(eq(s.userSiteRoles.userId, user.id));
     return [...new Set(rows.map((r) => r.siteId))];
   });

@@ -292,7 +292,10 @@ export function HubPage() {
           {sites.loading && <LoadingState />}
           {sites.error ? <ErrorState error={sites.error} onRetry={sites.reload} /> : null}
           {sites.data && sites.data.length === 0 && (
-            <EmptyState title="No sites assigned" hint="Ask a platform administrator to add you to a site." />
+            <EmptyState
+              title={session?.user.isPlatformAdmin ? "No sites in fleet" : "No sites assigned"}
+              hint={session?.user.isPlatformAdmin ? "Click '+NEW SITE' above or use 'Bolo & Build' to initialize an operational tenant workspace." : "Ask a platform administrator to add you to a site."}
+            />
           )}
           {sites.data && sites.data.length > 0 && (
             <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
