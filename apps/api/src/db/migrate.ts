@@ -99,6 +99,30 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
       await runManualMigrations(pool, migrationsFolder);
     }
 
+    // 3b. Ensure baseline roles and platform admin user exist
+    try {
+      await pool.query(`
+        INSERT INTO roles (key, name) VALUES
+          ('admin', 'Administrator'),
+          ('storekeeper', 'Storekeeper'),
+          ('viewer', 'Viewer'),
+          ('technician', 'Technician'),
+          ('approver', 'Approver'),
+          ('dispatcher', 'Dispatcher')
+        ON CONFLICT (key) DO NOTHING;
+      `);
+
+      const adminHash = '$2b$10$Nu8SZ4F/qjhDj0lomQnIX.uqsIE5h.584zqoqPj25hV2vIGRlMvE.';
+      await pool.query(`
+        INSERT INTO users (id, email, display_name, password_hash, is_platform_admin)
+        VALUES ('10000000-0000-4000-8000-000000000001', 'admin@opshub.local', 'Platform Admin', $1, true)
+        ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, is_platform_admin = true;
+      `, [adminHash]);
+      console.log("Baseline platform admin user verified.");
+    } catch (adminErr: any) {
+      console.warn("Notice ensuring baseline admin user:", adminErr?.message);
+    }
+
     // 4. Ensure application role has required table grants
     try {
       await pool.query(`DO $$ BEGIN
