@@ -192,6 +192,21 @@ export async function runMigrations(adminUrl: string, appUrl: string): Promise<v
         ON CONFLICT (user_id, site_id, role_id) DO NOTHING;
       `);
 
+      // Ensure RLS allows platform administrators to see all sites and memberships
+      await pool.query(`
+        CREATE OR REPLACE FUNCTION is_platform_admin() RETURNS boolean LANGUAGE sql STABLE AS $$
+          SELECT coalesce((SELECT is_platform_admin FROM users WHERE id = app_user_id()), false)
+        $$;
+
+        DROP POLICY IF EXISTS site_visibility ON sites;
+        CREATE POLICY site_visibility ON sites FOR SELECT
+          USING (is_platform_admin() OR id = app_site_id() OR id IN (SELECT site_id FROM user_site_roles WHERE user_id = app_user_id()));
+
+        DROP POLICY IF EXISTS membership_read ON user_site_roles;
+        CREATE POLICY membership_read ON user_site_roles FOR SELECT
+          USING (is_platform_admin() OR user_id = app_user_id() OR site_id = app_site_id());
+      `);
+
       console.log("Baseline fleet sites, releases, and user roles verified.");
     } catch (adminErr: any) {
       console.warn("Notice ensuring baseline metadata:", adminErr?.message);
