@@ -1,7 +1,6 @@
 import "../../../styles/website.css";
 import { ChevronsLeft, ChevronsRight, LayoutTemplate, Puzzle, Search } from "lucide-react";
 import type { ReactNode } from "react";
-import { useCanBuildWebsites } from "../../../stores/session";
 
 export type SidebarTab = "templates" | "modules";
 
@@ -11,13 +10,12 @@ const TABS: { id: SidebarTab; label: string; icon: typeof Puzzle }[] = [
 ];
 
 /** Canva-style left sidebar: an icon rail with two tabs and a searchable panel. */
-export function WebsiteBuilderSidebar({ tab, onTab, collapsed, onCollapsed, query, onQuery, children }: { tab: SidebarTab; onTab: (t: SidebarTab) => void; collapsed: boolean; onCollapsed: (c: boolean) => void; query: string; onQuery: (q: string) => void; children: ReactNode }) {
-  // Platform administrators only, even if a caller forgets to check.
-  if (!useCanBuildWebsites()) return null;
+export function WebsiteBuilderSidebar({ tab, onTab, collapsed, onCollapsed, query, onQuery, showTemplates, children }: { tab: SidebarTab; onTab: (t: SidebarTab) => void; collapsed: boolean; onCollapsed: (c: boolean) => void; query: string; onQuery: (q: string) => void; showTemplates: boolean; children: ReactNode }) {
+  const tabs = showTemplates ? TABS : TABS.filter(({ id }) => id === "modules");
   return (
     <aside aria-label="Website builder" className="flex h-[640px] shrink-0 overflow-hidden xl:h-full rounded-2xl border-2 border-[#1E293B] bg-white text-[#0F172A] shadow-[4px_4px_0px_#1E293B] dark:border-[#334155] dark:bg-[#131B2E] dark:text-white dark:shadow-[4px_4px_0px_#020617]">
       <div role="tablist" aria-orientation="vertical" aria-label="Builder library" className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 border-r-2 border-[#1E293B] bg-slate-50 py-3 dark:border-r-[#334155] dark:bg-[#0B1120]">
-        {TABS.map(({ id, label, icon: Icon }) => {
+        {tabs.map(({ id, label, icon: Icon }) => {
           const active = tab === id && !collapsed;
           return (
             <button

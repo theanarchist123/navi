@@ -138,9 +138,10 @@ export function BuilderPage({ activeVersion, activeConfig }: { activeVersion: nu
   const canBuildWebsites = isPlatformAdmin && Boolean(host.data?.siteId) && host.data?.siteId === siteId;
   const templates = useAsync(() => (canBuildWebsites ? websiteApi.templates() : Promise.resolve([])), [canBuildWebsites]);
   const websites = useAsync(() => (canBuildWebsites ? websiteApi.listDeployed() : Promise.resolve([])), [canBuildWebsites]);
-  const [sideTab, setSideTab] = useState<SidebarTab>("templates");
+  const [sideTab, setSideTab] = useState<SidebarTab>(isPlatformAdmin ? "templates" : "modules");
   const [sideCollapsed, setSideCollapsed] = useState(false);
   const [sideQuery, setSideQuery] = useState("");
+  const visibleSideTab: SidebarTab = canBuildWebsites ? sideTab : "modules";
 
   // Working config lives in an undo/redo history; server verdict, selection and release state are separate.
   // The site's history and a website workspace's history are kept apart; `setHist` edits whichever is open.
@@ -493,16 +494,16 @@ export function BuilderPage({ activeVersion, activeConfig }: { activeVersion: nu
       </>
       )}
       <div ref={workspace} className="flex flex-col gap-4 xl:flex-row" style={fillHeight ? { height: fillHeight } : undefined}>
-        {canBuildWebsites && (
-          <WebsiteBuilderSidebar
-            tab={sideTab}
-            onTab={(t) => { setSideTab(t); setSideQuery(""); }}
-            collapsed={sideCollapsed}
-            onCollapsed={setSideCollapsed}
-            query={sideQuery}
-            onQuery={setSideQuery}
-          >
-            {sideTab === "templates" ? (
+        <WebsiteBuilderSidebar
+          tab={visibleSideTab}
+          onTab={(t) => { setSideTab(t); setSideQuery(""); }}
+          collapsed={sideCollapsed}
+          onCollapsed={setSideCollapsed}
+          query={sideQuery}
+          onQuery={setSideQuery}
+          showTemplates={canBuildWebsites}
+        >
+            {visibleSideTab === "templates" ? (
               templates.error ? (
                 <ErrorState error={templates.error} onRetry={templates.reload} />
               ) : templates.loading ? (
@@ -524,8 +525,7 @@ export function BuilderPage({ activeVersion, activeConfig }: { activeVersion: nu
                 <ModuleGallery defs={defs} config={config} query={sideQuery} locked={locked} onAdd={(t) => addFromGallery(t)} onUnlock={locked ? unlock : undefined} />
               </>
             )}
-          </WebsiteBuilderSidebar>
-        )}
+        </WebsiteBuilderSidebar>
         <div
           className={`relative h-[580px] min-w-0 flex-1 rounded-2xl xl:h-full border-2 border-[#1E293B] bg-[#F8FAFC] shadow-[4px_4px_0px_#1E293B] overflow-hidden dark:border-[#334155] dark:bg-[#0B1120] dark:shadow-[4px_4px_0px_#020617]`}
           aria-label="Module graph"

@@ -56,24 +56,34 @@ beforeEach(() => {
 describe("website builder in the configuration builder", () => {
   const mount = () => renderInSite(<BuilderPage activeVersion={1} activeConfig={configs.central} />, { config: configs.central, permissions: ["config:manage"] });
 
-  it("is hidden from non-admins", async () => {
+  it("keeps the modules sidebar available to non-admins but hides website templates", async () => {
     useSession.setState({ session: session({ isPlatformAdmin: false }) });
     mount();
     await screen.findByText("Configuration builder");
+    expect(screen.getByRole("tab", { name: "Modules" })).toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("complementary", { name: "Website builder" })).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Website builder" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Deploy website" })).not.toBeInTheDocument();
     expect(websiteApi.templates).not.toHaveBeenCalled();
     expect(websiteApi.listDeployed).not.toHaveBeenCalled();
     expect(websiteApi.users).not.toHaveBeenCalled();
   });
 
-  it("appears only in the host site's builder, even for an admin", async () => {
+  it("keeps the modules sidebar on other sites but limits templates to the host site", async () => {
     renderInSite(<BuilderPage activeVersion={1} activeConfig={configs.service} />, { config: configs.service, permissions: ["config:manage"] });
     await screen.findByText("Configuration builder");
     await waitFor(() => expect(websiteApi.host).toHaveBeenCalled());
-    expect(screen.queryByRole("complementary", { name: "Website builder" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Modules" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Website builder" })).toBeInTheDocument();
     expect(websiteApi.templates).not.toHaveBeenCalled();
+  });
+
+  it("shows both sidebar tabs on the website-builder host site", async () => {
+    mount();
+    await screen.findByText("Configuration builder");
+    expect(await screen.findByRole("tab", { name: "Templates" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Modules" })).toBeInTheDocument();
   });
 
   it("never renders the deploy panel for a non-admin, even if asked to", async () => {
