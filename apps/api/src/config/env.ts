@@ -3,9 +3,14 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-// Load the repo-root .env for local development if present. Real environment variables win.
+// Prefer a local-only override so cloud .env credentials can remain untouched during development.
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envCandidates = [
+  resolve(process.cwd(), ".env.local"),
+  resolve(process.cwd(), "../../.env.local"),
+  resolve(process.cwd(), "../.env.local"),
+  resolve(__dirname, "../../../../.env.local"),
+  resolve(__dirname, "../../.env.local"),
   resolve(process.cwd(), ".env"),
   resolve(process.cwd(), "../../.env"),
   resolve(process.cwd(), "../.env"),

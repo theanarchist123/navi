@@ -57,6 +57,24 @@ describe("login form", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password");
     expect(useSession.getState().status).toBe("anonymous");
   });
+
+  it.each([
+    ["Platform Admin", "admin@opshub.local", "Trust Console"],
+    ["Storekeeper", "storekeeper@opshub.local", "Optical Scanning"],
+    ["Technician", "technician@opshub.local", "PCB Repairs"],
+    ["Approver", "approver@opshub.local", "SLA Breaches"],
+    ["Dispatcher", "dispatcher@opshub.local", "Material Assignments"],
+  ])("selecting %s previews its scope and fills demo credentials", async (role, email, scope) => {
+    renderLogin();
+    const choice = screen.getByRole("button", { name: role });
+    await userEvent.click(choice);
+
+    expect(choice).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByLabelText("Email")).toHaveValue(email);
+    expect(screen.getByLabelText("Password")).toHaveValue("opshub-dev-1");
+    expect(screen.getByText(new RegExp(scope))).toBeInTheDocument();
+    expect(screen.getByText(/Demo credentials filled below/)).toBeInTheDocument();
+  });
 });
 
 describe("configOps", () => {
