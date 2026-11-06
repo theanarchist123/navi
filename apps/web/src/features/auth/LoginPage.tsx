@@ -48,8 +48,8 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Brand Hero Panel (54% on desktop) */}
-      <div className="relative z-10 hidden lg:flex lg:col-span-7 flex-col justify-between p-10 xl:p-14 overflow-hidden">
+      {/* Brand hero panel (50% on desktop) */}
+      <div className="relative z-10 hidden lg:flex lg:col-span-6 flex-col justify-between p-10 xl:p-14 overflow-hidden">
         {/* Top Header Section */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3.5 bg-white border-2 border-[#1E293B] px-4 py-2.5 rounded-2xl shadow-[4px_4px_0px_#1E293B]">
@@ -140,8 +140,8 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Authentication Form Panel (46% on desktop) */}
-      <div className="relative z-10 flex lg:col-span-5 flex-col justify-center items-center p-6 sm:p-12 lg:p-14">
+      {/* Authentication form panel (50% on desktop) */}
+      <div className="relative z-10 flex lg:col-span-6 flex-col justify-center items-center p-6 sm:p-12 lg:p-14">
         <div className="relative z-10 w-full max-w-[420px]">
           {/* Mobile brand mark */}
           <div className="mb-6 lg:hidden text-center">

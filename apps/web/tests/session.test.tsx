@@ -60,6 +60,38 @@ describe("return to where you were after signing in again", () => {
 });
 
 describe("session handling", () => {
+  it("shows login immediately while restoring a session, then returns to the requested page", async () => {
+    let resolveMe!: (value: AuthSession) => void;
+    vi.mocked(authApi.me).mockReturnValue(new Promise((resolve) => {
+      resolveMe = resolve;
+    }));
+    useSession.setState({ status: "unknown", session: null });
+    app({ pathname: "/s/central-stores" });
+
+    expect(await screen.findByRole("heading", { name: "Sign in to OpsHub" })).toBeInTheDocument();
+    const restoring = useSession.getState().restore();
+    await waitFor(() => expect(authApi.me).toHaveBeenCalled());
+    resolveMe(session);
+    await restoring;
+    expect(await screen.findByText("SITE PAGE")).toBeInTheDocument();
+  });
+
+  it("does not let a late session restore overwrite a successful login", async () => {
+    let resolveMe!: (value: AuthSession) => void;
+    vi.mocked(authApi.me).mockReturnValue(new Promise((resolve) => {
+      resolveMe = resolve;
+    }));
+    vi.mocked(authApi.login).mockResolvedValue(session);
+    useSession.setState({ status: "unknown", session: null });
+    app({ pathname: "/login" });
+
+    const restoring = useSession.getState().restore();
+    await signIn();
+    resolveMe({ ...session, user: { ...session.user, id: "20000000-0000-4000-8000-000000000002" } });
+    await restoring;
+    expect(useSession.getState().session?.user.id).toBe(session.user.id);
+  });
+
   it("a lost session (refresh failed) returns the app to the anonymous state", async () => {
     useSession.setState({ status: "authenticated", session });
     app({ pathname: "/" });

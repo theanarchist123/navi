@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { DeadZoneBanner, LoadingState, SkeletonLoader, Toaster } from "../components/feedback";
+import { DeadZoneBanner, SkeletonLoader, Toaster } from "../components/feedback";
 import { LoginPage } from "../features/auth/LoginPage";
 import { SiteRoute } from "../runtime/SiteRoutes";
 import { WebsiteRoute } from "../runtime/WebsiteRenderer";
@@ -15,8 +15,7 @@ const BoloBuildPage = lazy(() => import("../features/builder/BoloBuildPage").the
 export function RequireAuth({ children }: { children: ReactNode }) {
   const status = useSession((s) => s.status);
   const location = useLocation();
-  if (status === "unknown") return <div className="p-8"><LoadingState label="Restoring session…" /></div>;
-  if (status === "anonymous") return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
+  if (status !== "authenticated") return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   return <>{children}</>;
 }
 

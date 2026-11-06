@@ -15,21 +15,28 @@ interface SessionState {
   logout: () => Promise<void>;
 }
 
+let restoreRequest = 0;
+
 export const useSession = create<SessionState>((set) => ({
   status: "unknown",
   session: null,
   async restore() {
+    const request = ++restoreRequest;
     try {
-      set({ session: await authApi.me(), status: "authenticated" });
+      const session = await authApi.me();
+      if (request === restoreRequest) set({ session, status: "authenticated" });
     } catch {
       // 401 simply means "not signed in"; other failures also leave the user at the login screen.
-      set({ session: null, status: "anonymous" });
+      if (request === restoreRequest) set({ session: null, status: "anonymous" });
     }
   },
   async login(body) {
-    set({ session: await authApi.login(body), status: "authenticated" });
+    const session = await authApi.login(body);
+    ++restoreRequest;
+    set({ session, status: "authenticated" });
   },
   async logout() {
+    ++restoreRequest;
     try {
       await authApi.logout();
     } finally {
