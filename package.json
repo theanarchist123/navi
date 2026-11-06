@@ -11,10 +11,11 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npm run build:contracts && npm-run-all --parallel dev:contracts dev:api dev:web:ready",
+    "dev": "npm run build:contracts && npm-run-all --parallel dev:contracts dev:local",
     "dev:contracts": "npm run dev -w @opshub/contracts",
     "dev:web": "npm run dev -w @opshub/web",
     "dev:web:ready": "node scripts/wait-for-api.mjs && npm run dev:web",
+    "dev:local": "node scripts/dev-local.mjs",
     "dev:api": "npm run dev -w @opshub/api",
     "build:contracts": "npm run build -w @opshub/contracts",
     "build:api": "npm run build:contracts && npm run build -w @opshub/api",

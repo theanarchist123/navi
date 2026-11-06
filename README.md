@@ -300,18 +300,14 @@ npm install
 # Create local development settings without changing an existing .env (for example, cloud credentials).
 cp .env.example .env.local
 
-# Terminal 1: Embedded Zero-Config PostgreSQL (seeds automatically)
-npm run db:embedded
-
-# Terminal 2: Full Development Environment (API + Web)
-# The web server starts after the API health check succeeds.
+# Starts/reuses local PostgreSQL, then waits for the API before launching the web app.
 npm run dev
 ```
 
 - **Frontend Cockpit**: [http://localhost:5173](http://localhost:5173)
 - **Backend API Server**: [http://localhost:4000](http://localhost:4000)
 
-`.env.local` is loaded before `.env` and is ignored by Git. It should use local development settings; real environment variables still take precedence.
+`.env.local` is loaded before `.env` and is ignored by Git. It should use local development settings; real environment variables still take precedence. If a local database is already running and seeded, `npm run dev` reuses it; otherwise it starts the embedded database automatically.
 
 ---
 
