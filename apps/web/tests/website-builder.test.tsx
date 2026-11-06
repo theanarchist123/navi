@@ -69,14 +69,14 @@ describe("website builder in the configuration builder", () => {
     expect(websiteApi.users).not.toHaveBeenCalled();
   });
 
-  it("keeps the modules sidebar on other sites but limits templates to the host site", async () => {
+  it("shows platform admins both tabs and templates on every site", async () => {
     renderInSite(<BuilderPage activeVersion={1} activeConfig={configs.service} />, { config: configs.service, permissions: ["config:manage"] });
     await screen.findByText("Configuration builder");
-    await waitFor(() => expect(websiteApi.host).toHaveBeenCalled());
+    expect(await screen.findByRole("tab", { name: "Templates" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Modules" })).toBeInTheDocument();
-    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    expect(await screen.findByTestId("template-ocean-breeze")).toBeInTheDocument();
     expect(screen.getByRole("complementary", { name: "Website builder" })).toBeInTheDocument();
-    expect(websiteApi.templates).not.toHaveBeenCalled();
+    expect(websiteApi.templates).toHaveBeenCalled();
   });
 
   it("shows both sidebar tabs on the website-builder host site", async () => {

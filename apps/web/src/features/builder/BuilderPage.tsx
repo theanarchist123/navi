@@ -132,10 +132,9 @@ export function BuilderPage({ activeVersion, activeConfig }: { activeVersion: nu
   const setPreview = usePreviewStore((s) => s.setDraft);
   const registry = useAsync(async () => ({ modules: await sitesApi.modules(), dataTypes: await sitesApi.dataTypes() }), []);
 
-  // The website builder appears only for platform admins, and only in the host site's builder.
+  // Website templates and deployment are platform-admin tools available in every site's builder.
   const isPlatformAdmin = useCanBuildWebsites();
-  const host = useAsync(() => (isPlatformAdmin ? websiteApi.host() : Promise.resolve(null)), [isPlatformAdmin]);
-  const canBuildWebsites = isPlatformAdmin && Boolean(host.data?.siteId) && host.data?.siteId === siteId;
+  const canBuildWebsites = isPlatformAdmin;
   const templates = useAsync(() => (canBuildWebsites ? websiteApi.templates() : Promise.resolve([])), [canBuildWebsites]);
   const websites = useAsync(() => (canBuildWebsites ? websiteApi.listDeployed() : Promise.resolve([])), [canBuildWebsites]);
   const [sideTab, setSideTab] = useState<SidebarTab>(isPlatformAdmin ? "templates" : "modules");
